@@ -54,6 +54,81 @@ public class ExceptionContext {
     }
 
     /**
+     * Gets a context value by key (alias for get method for backward compatibility).
+     *
+     * @param key the key
+     * @return the value, or null if not found
+     */
+    public Object getContextData(String key) {
+        return contextData.get(key);
+    }
+
+    /**
+     * Adds context data (alias for add method for backward compatibility).
+     *
+     * @param key the key
+     * @param value the value
+     * @return this context for chaining
+     */
+    public ExceptionContext addContextData(String key, Object value) {
+        return add(key, value);
+    }
+
+    /**
+     * Gets metadata value by key.
+     *
+     * @param key the key
+     * @return the metadata value, or null if not found
+     */
+    public String getMetadata(String key) {
+        Object value = contextData.get("meta_" + key);
+        return value != null ? value.toString() : null;
+    }
+
+    /**
+     * Adds metadata.
+     *
+     * @param key the key
+     * @param value the value
+     * @return this context for chaining
+     */
+    public ExceptionContext addMetadata(String key, String value) {
+        contextData.put("meta_" + key, value);
+        return this;
+    }
+
+    /**
+     * Gets all context data (non-metadata entries).
+     *
+     * @return map of all context data
+     */
+    public Map<String, Object> getAllContextData() {
+        Map<String, Object> result = new HashMap<>();
+        for (Map.Entry<String, Object> entry : contextData.entrySet()) {
+            if (!entry.getKey().startsWith("meta_")) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Gets all metadata entries.
+     *
+     * @return map of all metadata
+     */
+    public Map<String, String> getAllMetadata() {
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<String, Object> entry : contextData.entrySet()) {
+            if (entry.getKey().startsWith("meta_")) {
+                String key = entry.getKey().substring(5); // Remove "meta_" prefix
+                result.put(key, entry.getValue().toString());
+            }
+        }
+        return result;
+    }
+
+    /**
      * Gets a context value with type casting.
      *
      * @param key the key
