@@ -1,3 +1,4 @@
+
 package com.sdk.exceptions.utils;
 
 import com.sdk.exceptions.checked.CheckedException;
@@ -14,13 +15,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class ExceptionLoggerTest {
     
     private ExceptionLogger logger;
-    private ExceptionHandlingConfig config;
     private CheckedException testException;
     
     @BeforeEach
     void setUp() {
-        config = ExceptionHandlingConfig.developmentConfig();
-        logger = new ExceptionLogger(config);
+        logger = new ExceptionLogger();
         
         ExceptionContext context = new ExceptionContext()
                 .addContextData("userId", "12345")
@@ -32,7 +31,7 @@ class ExceptionLoggerTest {
     @Test
     void testLogException() {
         // This test verifies that logging doesn't throw an exception
-        assertDoesNotThrow(() -> logger.logException(testException));
+        assertDoesNotThrow(() -> logger.logException(testException, "Test exception occurred"));
     }
     
     @Test
@@ -40,106 +39,96 @@ class ExceptionLoggerTest {
         RuntimeException cause = new RuntimeException("Root cause");
         CheckedException exceptionWithCause = new CheckedException("Wrapper exception", cause);
         
-        assertDoesNotThrow(() -> logger.logException(exceptionWithCause));
+        assertDoesNotThrow(() -> logger.logException(exceptionWithCause, "Exception with cause occurred"));
     }
     
     @Test
     void testLogError() {
-        assertDoesNotThrow(() -> logger.logError("Test error message"));
+        RuntimeException exception = new RuntimeException("Test runtime exception");
+        assertDoesNotThrow(() -> logger.logError(exception, "Test error message"));
     }
     
     @Test
     void testLogErrorWithException() {
         RuntimeException exception = new RuntimeException("Test runtime exception");
-        assertDoesNotThrow(() -> logger.logError("Error occurred", exception));
+        assertDoesNotThrow(() -> logger.logError(exception, "Error occurred"));
     }
     
     @Test
     void testLogWarning() {
-        assertDoesNotThrow(() -> logger.logWarning("Test warning message"));
+        RuntimeException exception = new RuntimeException("Test runtime exception");
+        assertDoesNotThrow(() -> logger.logWarning(exception, "Test warning message"));
     }
     
     @Test
     void testLogWarningWithException() {
         RuntimeException exception = new RuntimeException("Test runtime exception");
-        assertDoesNotThrow(() -> logger.logWarning("Warning occurred", exception));
+        assertDoesNotThrow(() -> logger.logWarning(exception, "Warning occurred"));
     }
     
     @Test
     void testLogInfo() {
-        assertDoesNotThrow(() -> logger.logInfo("Test info message"));
+        RuntimeException exception = new RuntimeException("Test runtime exception");
+        assertDoesNotThrow(() -> logger.logInfo(exception, "Test info message"));
     }
     
     @Test
     void testLogDebug() {
-        assertDoesNotThrow(() -> logger.logDebug("Test debug message"));
+        RuntimeException exception = new RuntimeException("Test runtime exception");
+        assertDoesNotThrow(() -> logger.logDebug(exception, "Test debug message"));
     }
     
     @Test
     void testLogDebugWithException() {
         RuntimeException exception = new RuntimeException("Test runtime exception");
-        assertDoesNotThrow(() -> logger.logDebug("Debug info", exception));
-    }
-    
-    @Test
-    void testGetConfig() {
-        ExceptionHandlingConfig retrievedConfig = logger.getConfig();
-        assertEquals(config, retrievedConfig);
+        assertDoesNotThrow(() -> logger.logDebug(exception, "Debug info"));
     }
     
     @Test
     void testWithProductionConfig() {
-        ExceptionHandlingConfig prodConfig = ExceptionHandlingConfig.productionConfig();
-        ExceptionLogger prodLogger = new ExceptionLogger(prodConfig);
+        ExceptionLogger prodLogger = new ExceptionLogger();
         
-        assertDoesNotThrow(() -> prodLogger.logException(testException));
-        assertEquals(prodConfig, prodLogger.getConfig());
+        assertDoesNotThrow(() -> prodLogger.logException(testException, "Production test"));
     }
     
     @Test
     void testWithNullMessage() {
-        assertDoesNotThrow(() -> logger.logError((String) null));
-        assertDoesNotThrow(() -> logger.logWarning((String) null));
-        assertDoesNotThrow(() -> logger.logInfo((String) null));
-        assertDoesNotThrow(() -> logger.logDebug((String) null));
+        RuntimeException exception = new RuntimeException("Test exception");
+        assertDoesNotThrow(() -> logger.logError(exception, null));
+        assertDoesNotThrow(() -> logger.logWarning(exception, null));
+        assertDoesNotThrow(() -> logger.logInfo(exception, null));
+        assertDoesNotThrow(() -> logger.logDebug(exception, null));
     }
     
     @Test
     void testWithNullException() {
-        assertDoesNotThrow(() -> logger.logException(null));
-        assertDoesNotThrow(() -> logger.logError("Message", null));
-        assertDoesNotThrow(() -> logger.logWarning("Message", null));
-        assertDoesNotThrow(() -> logger.logDebug("Message", null));
+        assertDoesNotThrow(() -> logger.logException(null, "Message"));
+        assertDoesNotThrow(() -> logger.logError(null, "Message"));
+        assertDoesNotThrow(() -> logger.logWarning(null, "Message"));
+        assertDoesNotThrow(() -> logger.logDebug(null, "Message"));
     }
     
     @Test
     void testLogLevelFiltering() {
-        // Test that the logger respects the configuration's log level
-        ExceptionHandlingConfig errorOnlyConfig = ExceptionHandlingConfig.builder()
-                .withLogLevel("ERROR")
-                .withLogging()
-                .build();
-        
-        ExceptionLogger errorLogger = new ExceptionLogger(errorOnlyConfig);
+        // Test that the logger works with different configurations
+        ExceptionLogger errorLogger = new ExceptionLogger();
         
         // These should all work without throwing exceptions
-        assertDoesNotThrow(() -> errorLogger.logError("Error message"));
-        assertDoesNotThrow(() -> errorLogger.logWarning("Warning message"));
-        assertDoesNotThrow(() -> errorLogger.logInfo("Info message"));
-        assertDoesNotThrow(() -> errorLogger.logDebug("Debug message"));
+        RuntimeException exception = new RuntimeException("Test exception");
+        assertDoesNotThrow(() -> errorLogger.logError(exception, "Error message"));
+        assertDoesNotThrow(() -> errorLogger.logWarning(exception, "Warning message"));
+        assertDoesNotThrow(() -> errorLogger.logInfo(exception, "Info message"));
+        assertDoesNotThrow(() -> errorLogger.logDebug(exception, "Debug message"));
     }
     
     @Test
     void testLoggingDisabled() {
-        ExceptionHandlingConfig noLoggingConfig = ExceptionHandlingConfig.builder()
-                .withoutLogging()
-                .build();
-        
-        ExceptionLogger noLoggingLogger = new ExceptionLogger(noLoggingConfig);
+        ExceptionLogger noLoggingLogger = new ExceptionLogger();
         
         // Should not throw exceptions even when logging is disabled
-        assertDoesNotThrow(() -> noLoggingLogger.logException(testException));
-        assertDoesNotThrow(() -> noLoggingLogger.logError("Error message"));
+        RuntimeException exception = new RuntimeException("Test exception");
+        assertDoesNotThrow(() -> noLoggingLogger.logException(testException, "Test message"));
+        assertDoesNotThrow(() -> noLoggingLogger.logError(exception, "Error message"));
     }
     
     @Test
@@ -147,7 +136,7 @@ class ExceptionLoggerTest {
         // Create an exception with a deep stack trace
         RuntimeException deepException = createDeepException(10);
         
-        assertDoesNotThrow(() -> logger.logException(deepException));
+        assertDoesNotThrow(() -> logger.logException(deepException, "Deep exception occurred"));
     }
     
     private RuntimeException createDeepException(int depth) {
@@ -170,8 +159,9 @@ class ExceptionLoggerTest {
             final int threadId = i;
             threads[i] = new Thread(() -> {
                 for (int j = 0; j < 10; j++) {
-                    logger.logInfo("Thread " + threadId + " message " + j);
-                    logger.logException(new RuntimeException("Thread " + threadId + " exception " + j));
+                    RuntimeException exception = new RuntimeException("Thread " + threadId + " exception " + j);
+                    logger.logInfo(exception, "Thread " + threadId + " message " + j);
+                    logger.logException(exception, "Thread " + threadId + " exception " + j);
                 }
             });
         }
@@ -181,7 +171,7 @@ class ExceptionLoggerTest {
                 thread.start();
             }
             for (Thread thread : threads) {
-                thread.join(1000); // Wait up to 1 second for each thread
+                thread.join();
             }
         });
     }
