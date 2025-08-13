@@ -64,6 +64,17 @@ public class CheckedException extends BaseException {
         super(errorCode, message, cause, context);
     }
     
+    /**
+     * Constructs a CheckedException with error code, message and context.
+     *
+     * @param errorCode the error code
+     * @param message the detail message
+     * @param context additional context information
+     */
+    public CheckedException(String errorCode, String message, ExceptionContext context) {
+        super(errorCode, message, context);
+    }
+    
     @Override
     public String getCategory() {
         return CATEGORY;

@@ -84,3 +84,111 @@ public class DatabaseException extends CheckedException {
         return SEVERITY;
     }
 }
+package com.sdk.exceptions.checked;
+
+import com.sdk.exceptions.core.ExceptionContext;
+
+/**
+ * Exception for database-related errors.
+ */
+public class DatabaseException extends CheckedException {
+    
+    public static final String DEFAULT_ERROR_CODE = "DB_ERROR";
+    
+    /**
+     * Constructs a DatabaseException with the specified message.
+     *
+     * @param message the detail message
+     */
+    public DatabaseException(String message) {
+        super(message);
+    }
+    
+    /**
+     * Constructs a DatabaseException with the specified message and cause.
+     *
+     * @param message the detail message
+     * @param cause the cause of this exception
+     */
+    public DatabaseException(String message, Throwable cause) {
+        super(message, cause);
+    }
+    
+    /**
+     * Constructs a DatabaseException with the specified error code and message.
+     *
+     * @param errorCode the error code
+     * @param message the detail message
+     */
+    public DatabaseException(String errorCode, String message) {
+        super(errorCode, message);
+    }
+    
+    /**
+     * Constructs a DatabaseException with error code, message, and cause.
+     *
+     * @param errorCode the error code
+     * @param message the detail message
+     * @param cause the cause of this exception
+     */
+    public DatabaseException(String errorCode, String message, Throwable cause) {
+        super(errorCode, message, cause);
+    }
+    
+    /**
+     * Constructs a DatabaseException with all parameters.
+     *
+     * @param errorCode the error code
+     * @param message the detail message
+     * @param cause the cause of this exception
+     * @param context additional context information
+     */
+    public DatabaseException(String errorCode, String message, Throwable cause, ExceptionContext context) {
+        super(errorCode, message, cause, context);
+    }
+    
+    /**
+     * Factory method for connection timeout.
+     */
+    public static DatabaseException connectionTimeout(String database, int timeoutSeconds, Throwable cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("database", database)
+                .addContextData("timeoutSeconds", timeoutSeconds)
+                .addMetadata("errorType", "timeout")
+                .build();
+        
+        return new DatabaseException(DEFAULT_ERROR_CODE,
+                String.format("Connection timeout to database '%s' after %d seconds", database, timeoutSeconds),
+                cause, context);
+    }
+    
+    /**
+     * Factory method for query timeout.
+     */
+    public static DatabaseException queryTimeout(String query, int timeoutSeconds, Throwable cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("query", query)
+                .addContextData("timeoutSeconds", timeoutSeconds)
+                .addMetadata("errorType", "query_timeout")
+                .build();
+        
+        return new DatabaseException(DEFAULT_ERROR_CODE,
+                String.format("Query timeout after %d seconds: %s", timeoutSeconds, query),
+                cause, context);
+    }
+    
+    /**
+     * Factory method for constraint violation.
+     */
+    public static DatabaseException constraintViolation(String constraint, String table, Throwable cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("constraint", constraint)
+                .addContextData("table", table)
+                .addMetadata("errorType", "constraint")
+                .build();
+        
+        return new DatabaseException(DEFAULT_ERROR_CODE,
+                String.format("Constraint violation '%s' on table '%s'", constraint, table),
+                cause, context);
+    }
+}

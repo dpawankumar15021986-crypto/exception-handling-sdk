@@ -1,206 +1,174 @@
+
 package com.sdk.exceptions.error;
 
+import com.sdk.exceptions.core.BaseException;
 import com.sdk.exceptions.core.ExceptionContext;
 
 /**
  * Exception wrapper for system-level errors.
  * Wraps Error instances to provide consistent handling and context.
  */
-public class SystemErrorException extends RuntimeException {
+public class SystemErrorException extends BaseException {
     
     public static final String CATEGORY = "ERROR";
-    public static final String SEVERITY = "CRITICAL";
-    
-    private final String errorCode;
-    private final String errorId;
-    private final java.time.LocalDateTime timestamp;
-    private final ExceptionContext context;
-    private final String errorType;
+    public static final String DEFAULT_SEVERITY = "CRITICAL";
+    public static final String DEFAULT_ERROR_CODE = "SYSTEM_ERROR";
     
     /**
-     * Constructs a SystemErrorException wrapping an Error.
+     * Constructs a SystemErrorException with an Error.
      *
-     * @param error the system error to wrap
+     * @param error the system error
      */
     public SystemErrorException(Error error) {
-        this(error, null);
+        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "System error occurred", error);
     }
     
     /**
-     * Constructs a SystemErrorException wrapping an Error with additional context.
+     * Constructs a SystemErrorException with an Error and context.
      *
-     * @param error the system error to wrap
+     * @param error the system error
      * @param context additional context information
      */
     public SystemErrorException(Error error, ExceptionContext context) {
-        super(String.format("System error occurred: %s", error.getMessage()), error);
-        this.errorCode = generateErrorCode(error);
-        this.errorId = java.util.UUID.randomUUID().toString();
-        this.timestamp = java.time.LocalDateTime.now();
-        this.context = context != null ? context : createDefaultContext(error);
-        this.errorType = error.getClass().getSimpleName();
+        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "System error occurred", error, context);
     }
     
     /**
-     * Constructs a SystemErrorException for OutOfMemoryError.
+     * Constructs a SystemErrorException for OutOfMemoryError with memory info.
      *
      * @param error the OutOfMemoryError
-     * @param memoryInfo additional memory information
+     * @param memoryInfo memory information
      */
     public SystemErrorException(OutOfMemoryError error, MemoryInfo memoryInfo) {
-        super(String.format("Out of memory error: %s", error.getMessage()), error);
-        this.errorCode = "OUT_OF_MEMORY_ERROR";
-        this.errorId = java.util.UUID.randomUUID().toString();
-        this.timestamp = java.time.LocalDateTime.now();
-        this.errorType = "OutOfMemoryError";
-        
-        this.context = new ExceptionContext()
-                .addContextData("errorType", errorType)
-                .addContextData("maxMemory", memoryInfo.getMaxMemory())
-                .addContextData("totalMemory", memoryInfo.getTotalMemory())
-                .addContextData("freeMemory", memoryInfo.getFreeMemory())
-                .addContextData("usedMemory", memoryInfo.getUsedMemory())
-                .addMetadata("severity", SEVERITY)
-                .addMetadata("category", CATEGORY);
+        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "Out of memory error", error, 
+              createMemoryContext(memoryInfo));
     }
     
     /**
-     * Constructs a SystemErrorException for StackOverflowError.
+     * Constructs a SystemErrorException for StackOverflowError with stack depth.
      *
      * @param error the StackOverflowError
-     * @param stackDepth the approximate stack depth when the error occurred
+     * @param stackDepth the stack depth when error occurred
      */
     public SystemErrorException(StackOverflowError error, int stackDepth) {
-        super(String.format("Stack overflow error at depth ~%d: %s", stackDepth, error.getMessage()), error);
-        this.errorCode = "STACK_OVERFLOW_ERROR";
-        this.errorId = java.util.UUID.randomUUID().toString();
-        this.timestamp = java.time.LocalDateTime.now();
-        this.errorType = "StackOverflowError";
+        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "Stack overflow error", error,
+              createStackContext(stackDepth));
+    }
+    
+    /**
+     * Factory method for out of memory errors.
+     *
+     * @param component the component that failed
+     * @param memoryRequested the amount of memory requested
+     * @param cause the original OutOfMemoryError
+     * @return SystemErrorException instance
+     */
+    public static SystemErrorException outOfMemory(String component, long memoryRequested, OutOfMemoryError cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("component", component)
+                .addContextData("memoryRequested", memoryRequested)
+                .addMetadata("errorType", "memory")
+                .build();
         
-        this.context = new ExceptionContext()
-                .addContextData("errorType", errorType)
+        return new SystemErrorException(cause, context);
+    }
+    
+    /**
+     * Factory method for stack overflow errors.
+     *
+     * @param methodName the method where overflow occurred
+     * @param stackDepth the stack depth
+     * @param cause the original StackOverflowError
+     * @return SystemErrorException instance
+     */
+    public static SystemErrorException stackOverflow(String methodName, int stackDepth, StackOverflowError cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("methodName", methodName)
                 .addContextData("stackDepth", stackDepth)
-                .addMetadata("severity", SEVERITY)
-                .addMetadata("category", CATEGORY);
+                .addMetadata("errorType", "stack")
+                .build();
+        
+        return new SystemErrorException(cause, context);
     }
     
     /**
-     * Generates an error code based on the Error type.
+     * Factory method for thread death errors.
      *
-     * @param error the error instance
-     * @return the generated error code
+     * @param threadName the name of the thread
+     * @param cause the original ThreadDeath
+     * @return SystemErrorException instance
      */
-    private String generateErrorCode(Error error) {
-        String className = error.getClass().getSimpleName();
-        return className.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase();
+    public static SystemErrorException threadDeath(String threadName, ThreadDeath cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("threadName", threadName)
+                .addMetadata("errorType", "thread")
+                .build();
+        
+        return new SystemErrorException(cause, context);
     }
     
     /**
-     * Creates default context for an Error.
+     * Factory method for class loading errors.
      *
-     * @param error the error instance
-     * @return the default context
+     * @param className the name of the class that failed to load
+     * @param cause the original NoClassDefFoundError
+     * @return SystemErrorException instance
      */
-    private ExceptionContext createDefaultContext(Error error) {
-        return new ExceptionContext()
-                .addContextData("errorType", error.getClass().getSimpleName())
-                .addContextData("errorMessage", error.getMessage())
-                .addMetadata("severity", SEVERITY)
-                .addMetadata("category", CATEGORY);
+    public static SystemErrorException classLoadingError(String className, NoClassDefFoundError cause) {
+        ExceptionContext context = ExceptionContext.builder()
+                .addContextData("className", className)
+                .addMetadata("errorType", "classloading")
+                .build();
+        
+        return new SystemErrorException(cause, context);
     }
     
-    /**
-     * Gets the error code.
-     *
-     * @return the error code
-     */
-    public String getErrorCode() {
-        return errorCode;
-    }
-    
-    /**
-     * Gets the unique error ID.
-     *
-     * @return the error ID
-     */
-    public String getErrorId() {
-        return errorId;
-    }
-    
-    /**
-     * Gets the timestamp when this exception was created.
-     *
-     * @return the timestamp
-     */
-    public java.time.LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-    
-    /**
-     * Gets the exception context.
-     *
-     * @return the exception context
-     */
-    public ExceptionContext getContext() {
-        return context;
-    }
-    
-    /**
-     * Gets the original error type.
-     *
-     * @return the error type
-     */
-    public String getErrorType() {
-        return errorType;
-    }
-    
-    /**
-     * Gets the category of this exception.
-     *
-     * @return the exception category
-     */
+    @Override
     public String getCategory() {
         return CATEGORY;
     }
     
-    /**
-     * Gets the severity level of this exception.
-     *
-     * @return the severity level
-     */
+    @Override
     public String getSeverity() {
-        return SEVERITY;
+        return DEFAULT_SEVERITY;
+    }
+    
+    private static ExceptionContext createMemoryContext(MemoryInfo memoryInfo) {
+        ExceptionContext.Builder builder = ExceptionContext.builder()
+                .addMetadata("errorType", "memory");
+        
+        if (memoryInfo != null) {
+            builder.addContextData("totalMemory", memoryInfo.getTotalMemory())
+                   .addContextData("freeMemory", memoryInfo.getFreeMemory())
+                   .addContextData("maxMemory", memoryInfo.getMaxMemory());
+        }
+        
+        return builder.build();
+    }
+    
+    private static ExceptionContext createStackContext(int stackDepth) {
+        return ExceptionContext.builder()
+                .addContextData("stackDepth", stackDepth)
+                .addMetadata("errorType", "stack")
+                .build();
     }
     
     /**
-     * Helper class for memory information.
+     * Memory information class for OutOfMemoryError context.
      */
     public static class MemoryInfo {
-        private final long maxMemory;
         private final long totalMemory;
         private final long freeMemory;
+        private final long maxMemory;
         
-        public MemoryInfo() {
-            Runtime runtime = Runtime.getRuntime();
-            this.maxMemory = runtime.maxMemory();
-            this.totalMemory = runtime.totalMemory();
-            this.freeMemory = runtime.freeMemory();
+        public MemoryInfo(long totalMemory, long freeMemory, long maxMemory) {
+            this.totalMemory = totalMemory;
+            this.freeMemory = freeMemory;
+            this.maxMemory = maxMemory;
         }
         
-        public long getMaxMemory() {
-            return maxMemory;
-        }
-        
-        public long getTotalMemory() {
-            return totalMemory;
-        }
-        
-        public long getFreeMemory() {
-            return freeMemory;
-        }
-        
-        public long getUsedMemory() {
-            return totalMemory - freeMemory;
-        }
+        public long getTotalMemory() { return totalMemory; }
+        public long getFreeMemory() { return freeMemory; }
+        public long getMaxMemory() { return maxMemory; }
     }
 }

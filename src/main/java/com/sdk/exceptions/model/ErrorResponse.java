@@ -187,6 +187,24 @@ public class ErrorResponse {
     }
     
     /**
+     * Checks if this response has details.
+     *
+     * @return true if details are present, false otherwise
+     */
+    public boolean hasDetails() {
+        return details != null;
+    }
+    
+    /**
+     * Checks if this response has an HTTP status code.
+     *
+     * @return true if HTTP status code is present, false otherwise
+     */
+    public boolean hasHttpStatusCode() {
+        return httpStatusCode != null;
+    }
+    
+    /**
      * Builder class for ErrorResponse.
      */
     public static class Builder {
