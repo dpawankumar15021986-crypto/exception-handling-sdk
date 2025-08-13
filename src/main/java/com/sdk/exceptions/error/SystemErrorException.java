@@ -1,4 +1,3 @@
-
 package com.sdk.exceptions.error;
 
 import com.sdk.exceptions.core.BaseException;
@@ -9,30 +8,55 @@ import com.sdk.exceptions.core.ExceptionContext;
  * Wraps Error instances to provide consistent handling and context.
  */
 public class SystemErrorException extends BaseException {
-    
+
     public static final String CATEGORY = "ERROR";
     public static final String DEFAULT_SEVERITY = "CRITICAL";
     public static final String DEFAULT_ERROR_CODE = "SYSTEM_ERROR";
-    
+
     /**
-     * Constructs a SystemErrorException with an Error.
+     * Constructs a SystemErrorException with the specified message.
      *
-     * @param error the system error
+     * @param message the detail message
+     */
+    public SystemErrorException(String message) {
+        super(DEFAULT_ERROR_CODE, message);
+    }
+
+    /**
+     * Constructs a SystemErrorException with message and cause.
+     *
+     * @param message the detail message
+     * @param cause the cause of this exception
+     */
+    public SystemErrorException(String message, Throwable cause) {
+        super(DEFAULT_ERROR_CODE, message, cause);
+    }
+
+    /**
+     * Constructs a SystemErrorException with the specified error.
+     *
+     * @param error the system error that occurred
      */
     public SystemErrorException(Error error) {
-        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "System error occurred", error);
+        super(DEFAULT_ERROR_CODE,
+              error != null ? "System error occurred: " + error.getClass().getSimpleName() + " - " + error.getMessage()
+                            : "System error occurred",
+              error);
     }
-    
+
     /**
-     * Constructs a SystemErrorException with an Error and context.
+     * Constructs a SystemErrorException with error and context.
      *
-     * @param error the system error
+     * @param error the system error that occurred
      * @param context additional context information
      */
     public SystemErrorException(Error error, ExceptionContext context) {
-        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "System error occurred", error, context);
+        super(DEFAULT_ERROR_CODE,
+              error != null ? "System error occurred: " + error.getClass().getSimpleName() + " - " + error.getMessage()
+                            : "System error occurred",
+              error, context);
     }
-    
+
     /**
      * Constructs a SystemErrorException for OutOfMemoryError with memory info.
      *
@@ -40,10 +64,10 @@ public class SystemErrorException extends BaseException {
      * @param memoryInfo memory information
      */
     public SystemErrorException(OutOfMemoryError error, MemoryInfo memoryInfo) {
-        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "Out of memory error", error, 
+        super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "Out of memory error", error,
               createMemoryContext(memoryInfo));
     }
-    
+
     /**
      * Constructs a SystemErrorException for StackOverflowError with stack depth.
      *
@@ -54,7 +78,7 @@ public class SystemErrorException extends BaseException {
         super(DEFAULT_ERROR_CODE, error != null ? error.getMessage() : "Stack overflow error", error,
               createStackContext(stackDepth));
     }
-    
+
     /**
      * Factory method for out of memory errors.
      *
@@ -69,10 +93,10 @@ public class SystemErrorException extends BaseException {
                 .addContextData("memoryRequested", memoryRequested)
                 .addMetadata("errorType", "memory")
                 .build();
-        
+
         return new SystemErrorException(cause, context);
     }
-    
+
     /**
      * Factory method for stack overflow errors.
      *
@@ -87,10 +111,10 @@ public class SystemErrorException extends BaseException {
                 .addContextData("stackDepth", stackDepth)
                 .addMetadata("errorType", "stack")
                 .build();
-        
+
         return new SystemErrorException(cause, context);
     }
-    
+
     /**
      * Factory method for thread death errors.
      *
@@ -103,10 +127,10 @@ public class SystemErrorException extends BaseException {
                 .addContextData("threadName", threadName)
                 .addMetadata("errorType", "thread")
                 .build();
-        
+
         return new SystemErrorException(cause, context);
     }
-    
+
     /**
      * Factory method for class loading errors.
      *
@@ -119,40 +143,53 @@ public class SystemErrorException extends BaseException {
                 .addContextData("className", className)
                 .addMetadata("errorType", "classloading")
                 .build();
-        
+
         return new SystemErrorException(cause, context);
     }
-    
+
     @Override
     public String getCategory() {
         return CATEGORY;
     }
-    
+
     @Override
     public String getSeverity() {
         return DEFAULT_SEVERITY;
     }
-    
+
+    /**
+     * Gets the error type based on the cause.
+     *
+     * @return the error type
+     */
+    public String getErrorType() {
+        Throwable cause = getCause();
+        if (cause != null) {
+            return cause.getClass().getSimpleName();
+        }
+        return "SystemError";
+    }
+
     private static ExceptionContext createMemoryContext(MemoryInfo memoryInfo) {
         ExceptionContext.Builder builder = ExceptionContext.builder()
                 .addMetadata("errorType", "memory");
-        
+
         if (memoryInfo != null) {
             builder.addContextData("totalMemory", memoryInfo.getTotalMemory())
                    .addContextData("freeMemory", memoryInfo.getFreeMemory())
                    .addContextData("maxMemory", memoryInfo.getMaxMemory());
         }
-        
+
         return builder.build();
     }
-    
+
     private static ExceptionContext createStackContext(int stackDepth) {
         return ExceptionContext.builder()
                 .addContextData("stackDepth", stackDepth)
                 .addMetadata("errorType", "stack")
                 .build();
     }
-    
+
     /**
      * Memory information class for OutOfMemoryError context.
      */
@@ -160,13 +197,13 @@ public class SystemErrorException extends BaseException {
         private final long totalMemory;
         private final long freeMemory;
         private final long maxMemory;
-        
+
         public MemoryInfo(long totalMemory, long freeMemory, long maxMemory) {
             this.totalMemory = totalMemory;
             this.freeMemory = freeMemory;
             this.maxMemory = maxMemory;
         }
-        
+
         public long getTotalMemory() { return totalMemory; }
         public long getFreeMemory() { return freeMemory; }
         public long getMaxMemory() { return maxMemory; }

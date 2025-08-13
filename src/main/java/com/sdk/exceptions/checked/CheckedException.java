@@ -72,7 +72,7 @@ public class CheckedException extends BaseException {
      * @param context additional context information
      */
     public CheckedException(String errorCode, String message, ExceptionContext context) {
-        super(errorCode, message, context);
+        super(errorCode, message, null, context);
     }
     
     @Override

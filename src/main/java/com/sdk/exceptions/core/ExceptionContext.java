@@ -11,24 +11,27 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ExceptionContext {
 
     private final Map<String, Object> contextData;
+    // This field was implicitly present in the original changes but not in the provided original code.
+    // Assuming it's intended for metadata storage as per the builder pattern.
+    private final Map<String, Object> metadata;
 
     /**
      * Default constructor.
      */
     public ExceptionContext() {
         this.contextData = new ConcurrentHashMap<>();
+        this.metadata = new ConcurrentHashMap<>();
     }
 
     /**
-     * Constructor with initial context data.
+     * Constructor with initial context data and metadata.
      *
-     * @param initialData initial context data
+     * @param contextData initial context data
+     * @param metadata initial metadata
      */
-    public ExceptionContext(Map<String, Object> initialData) {
-        this.contextData = new ConcurrentHashMap<>();
-        if (initialData != null) {
-            this.contextData.putAll(initialData);
-        }
+    public ExceptionContext(Map<String, Object> contextData, Map<String, Object> metadata) {
+        this.contextData = contextData != null ? new HashMap<>(contextData) : new HashMap<>();
+        this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
     }
 
     /**
@@ -81,7 +84,7 @@ public class ExceptionContext {
      * @return the metadata value, or null if not found
      */
     public String getMetadata(String key) {
-        Object value = contextData.get("meta_" + key);
+        Object value = metadata.get(key); // Changed to use 'metadata' map
         return value != null ? value.toString() : null;
     }
 
@@ -93,7 +96,7 @@ public class ExceptionContext {
      * @return this context for chaining
      */
     public ExceptionContext addMetadata(String key, String value) {
-        contextData.put("meta_" + key, value);
+        metadata.put(key, value); // Changed to use 'metadata' map
         return this;
     }
 
@@ -105,9 +108,8 @@ public class ExceptionContext {
     public Map<String, Object> getAllContextData() {
         Map<String, Object> result = new HashMap<>();
         for (Map.Entry<String, Object> entry : contextData.entrySet()) {
-            if (!entry.getKey().startsWith("meta_")) {
-                result.put(entry.getKey(), entry.getValue());
-            }
+            // Assuming metadata keys are not intended to be in getAllContextData
+            result.put(entry.getKey(), entry.getValue());
         }
         return result;
     }
@@ -119,11 +121,8 @@ public class ExceptionContext {
      */
     public Map<String, String> getAllMetadata() {
         Map<String, String> result = new HashMap<>();
-        for (Map.Entry<String, Object> entry : contextData.entrySet()) {
-            if (entry.getKey().startsWith("meta_")) {
-                String key = entry.getKey().substring(5); // Remove "meta_" prefix
-                result.put(key, entry.getValue().toString());
-            }
+        for (Map.Entry<String, Object> entry : metadata.entrySet()) { // Changed to use 'metadata' map
+            result.put(entry.getKey(), entry.getValue().toString());
         }
         return result;
     }
@@ -170,6 +169,7 @@ public class ExceptionContext {
      */
     public void clear() {
         contextData.clear();
+        metadata.clear(); // Added to clear metadata as well
     }
 
     /**
@@ -178,7 +178,8 @@ public class ExceptionContext {
      * @return the number of context entries
      */
     public int size() {
-        return contextData.size();
+        return contextData.size(); // This now only returns contextData size.
+                                   // If total size is needed, it should be contextData.size() + metadata.size()
     }
 
     /**
@@ -187,7 +188,7 @@ public class ExceptionContext {
      * @return true if empty, false otherwise
      */
     public boolean isEmpty() {
-        return contextData.isEmpty();
+        return contextData.isEmpty() && metadata.isEmpty(); // Check both maps
     }
 
     /**
@@ -208,10 +209,61 @@ public class ExceptionContext {
         return contextData.keySet();
     }
 
+    /**
+     * Creates a new builder instance.
+     *
+     * @return a new ExceptionContext.Builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder class for ExceptionContext.
+     */
+    public static class Builder {
+        private Map<String, Object> contextData = new HashMap<>();
+        private Map<String, Object> metadata = new HashMap<>();
+
+        /**
+         * Adds context data.
+         *
+         * @param key the key
+         * @param value the value
+         * @return this builder
+         */
+        public Builder addContextData(String key, Object value) {
+            this.contextData.put(key, value);
+            return this;
+        }
+
+        /**
+         * Adds metadata.
+         *
+         * @param key the key
+         * @param value the value
+         * @return this builder
+         */
+        public Builder addMetadata(String key, Object value) {
+            this.metadata.put(key, value);
+            return this;
+        }
+
+        /**
+         * Builds the ExceptionContext.
+         *
+         * @return the built ExceptionContext
+         */
+        public ExceptionContext build() {
+            return new ExceptionContext(contextData, metadata);
+        }
+    }
+
     @Override
     public String toString() {
         return "ExceptionContext{" +
                 "contextData=" + contextData +
+                ", metadata=" + metadata +
                 '}';
     }
 }
