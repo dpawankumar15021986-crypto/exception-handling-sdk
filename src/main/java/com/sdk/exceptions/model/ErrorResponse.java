@@ -1,307 +1,228 @@
+
 package com.sdk.exceptions.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Standard error response model for API responses.
- * Provides consistent structure for error information across the SDK.
+ * Standardized error response model.
+ * Provides consistent structure for all error responses in the SDK.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
     
-    @JsonProperty("success")
-    private final boolean success;
+    private boolean success;
+    private String message;
+    private LocalDateTime timestamp;
+    private ExceptionDetails details;
+    private Integer httpStatusCode;
     
-    @JsonProperty("timestamp")
-    private final LocalDateTime timestamp;
-    
-    @JsonProperty("message")
-    private final String message;
-    
-    @JsonProperty("details")
-    private final ExceptionDetails details;
-    
-    @JsonProperty("httpStatusCode")
-    private final Integer httpStatusCode;
-    
-    @JsonProperty("path")
-    private final String path;
-    
-    @JsonProperty("correlationId")
-    private final String correlationId;
+    private static final ObjectMapper objectMapper = createObjectMapper();
     
     /**
-     * Private constructor for builder pattern.
+     * Default constructor.
      */
-    private ErrorResponse(Builder builder) {
-        this.success = builder.success;
-        this.timestamp = builder.timestamp;
-        this.message = builder.message;
-        this.details = builder.details;
-        this.httpStatusCode = builder.httpStatusCode;
-        this.path = builder.path;
-        this.correlationId = builder.correlationId;
+    public ErrorResponse() {
     }
     
     /**
-     * Creates a new builder.
+     * Constructor with all parameters.
      *
-     * @return the builder
+     * @param success whether the operation was successful
+     * @param message the response message
+     * @param timestamp the timestamp
+     * @param details the exception details
+     * @param httpStatusCode the HTTP status code
+     */
+    public ErrorResponse(boolean success, String message, LocalDateTime timestamp, 
+                        ExceptionDetails details, Integer httpStatusCode) {
+        this.success = success;
+        this.message = message;
+        this.timestamp = timestamp;
+        this.details = details;
+        this.httpStatusCode = httpStatusCode;
+    }
+    
+    /**
+     * Creates a success response without a message.
+     *
+     * @return success response
+     */
+    public static ErrorResponse success() {
+        return new ErrorResponse(true, "Success", LocalDateTime.now(), null, null);
+    }
+    
+    /**
+     * Creates a success response with a custom message.
+     *
+     * @param message the success message
+     * @return success response
+     */
+    public static ErrorResponse success(String message) {
+        return new ErrorResponse(true, message, LocalDateTime.now(), null, null);
+    }
+    
+    /**
+     * Creates an error response from exception details.
+     *
+     * @param details the exception details
+     * @return error response
+     */
+    public static ErrorResponse error(ExceptionDetails details) {
+        return new ErrorResponse(false, details.getMessage(), LocalDateTime.now(), details, null);
+    }
+    
+    /**
+     * Creates an error response with HTTP status code.
+     *
+     * @param details the exception details
+     * @param httpStatusCode the HTTP status code
+     * @return error response
+     */
+    public static ErrorResponse error(ExceptionDetails details, Integer httpStatusCode) {
+        return new ErrorResponse(false, details.getMessage(), LocalDateTime.now(), details, httpStatusCode);
+    }
+    
+    /**
+     * Creates a builder for ErrorResponse.
+     *
+     * @return new builder instance
      */
     public static Builder builder() {
         return new Builder();
     }
     
     /**
-     * Creates a simple error response.
+     * Converts this response to JSON string.
      *
-     * @param message the error message
-     * @return the error response
+     * @return JSON representation
+     * @throws RuntimeException if serialization fails
      */
-    public static ErrorResponse error(String message) {
-        return builder()
-                .success(false)
-                .timestamp(LocalDateTime.now())
-                .message(message)
-                .build();
+    public String toJsonString() {
+        try {
+            return objectMapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize ErrorResponse to JSON", e);
+        }
     }
     
     /**
-     * Creates an error response with HTTP status code.
+     * Converts this response to a Map.
      *
-     * @param message the error message
-     * @param httpStatusCode the HTTP status code
-     * @return the error response
+     * @return Map representation
      */
-    public static ErrorResponse error(String message, int httpStatusCode) {
-        return builder()
-                .success(false)
-                .timestamp(LocalDateTime.now())
-                .message(message)
-                .httpStatusCode(httpStatusCode)
-                .build();
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("success", success);
+        map.put("message", message);
+        map.put("timestamp", timestamp);
+        if (details != null) {
+            map.put("details", details.toMap());
+        }
+        if (httpStatusCode != null) {
+            map.put("httpStatusCode", httpStatusCode);
+        }
+        return map;
     }
     
     /**
-     * Creates an error response with details.
+     * Creates and configures ObjectMapper for JSON serialization.
      *
-     * @param details the exception details
-     * @return the error response
+     * @return configured ObjectMapper
      */
-    public static ErrorResponse error(ExceptionDetails details) {
-        return builder()
-                .success(false)
-                .timestamp(LocalDateTime.now())
-                .details(details)
-                .build();
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        return mapper;
     }
     
-    /**
-     * Gets the success flag.
-     *
-     * @return the success flag
-     */
+    // Getters and setters
     public boolean isSuccess() {
         return success;
     }
     
-    /**
-     * Gets the timestamp.
-     *
-     * @return the timestamp
-     */
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
     
-    /**
-     * Gets the error message.
-     *
-     * @return the error message
-     */
     public String getMessage() {
         return message;
     }
     
-    /**
-     * Gets the exception details.
-     *
-     * @return the exception details
-     */
+    public void setMessage(String message) {
+        this.message = message;
+    }
+    
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+    
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+    
     public ExceptionDetails getDetails() {
         return details;
     }
     
-    /**
-     * Gets the HTTP status code.
-     *
-     * @return the HTTP status code
-     */
+    public void setDetails(ExceptionDetails details) {
+        this.details = details;
+    }
+    
     public Integer getHttpStatusCode() {
         return httpStatusCode;
     }
     
-    /**
-     * Gets the request path.
-     *
-     * @return the request path
-     */
-    public String getPath() {
-        return path;
+    public void setHttpStatusCode(Integer httpStatusCode) {
+        this.httpStatusCode = httpStatusCode;
     }
     
     /**
-     * Gets the correlation ID.
-     *
-     * @return the correlation ID
-     */
-    public String getCorrelationId() {
-        return correlationId;
-    }
-    
-    /**
-     * Checks if this response has exception details.
-     *
-     * @return true if details are present, false otherwise
-     */
-    public boolean hasDetails() {
-        return details != null;
-    }
-    
-    /**
-     * Checks if this response has an HTTP status code.
-     *
-     * @return true if HTTP status code is present, false otherwise
-     */
-    public boolean hasHttpStatusCode() {
-        return httpStatusCode != null;
-    }
-    
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ErrorResponse that = (ErrorResponse) o;
-        return success == that.success &&
-                Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(message, that.message) &&
-                Objects.equals(details, that.details) &&
-                Objects.equals(httpStatusCode, that.httpStatusCode) &&
-                Objects.equals(path, that.path) &&
-                Objects.equals(correlationId, that.correlationId);
-    }
-    
-    @Override
-    public int hashCode() {
-        return Objects.hash(success, timestamp, message, details, httpStatusCode, path, correlationId);
-    }
-    
-    @Override
-    public String toString() {
-        return String.format("ErrorResponse{success=%s, timestamp=%s, message='%s', httpStatusCode=%s}",
-                success, timestamp, message, httpStatusCode);
-    }
-    
-    /**
-     * Builder for ErrorResponse.
+     * Builder class for ErrorResponse.
      */
     public static class Builder {
-        private boolean success = false;
-        private LocalDateTime timestamp = LocalDateTime.now();
+        private boolean success;
         private String message;
+        private LocalDateTime timestamp;
         private ExceptionDetails details;
         private Integer httpStatusCode;
-        private String path;
-        private String correlationId;
         
-        /**
-         * Sets the success flag.
-         *
-         * @param success the success flag
-         * @return this builder
-         */
         public Builder success(boolean success) {
             this.success = success;
             return this;
         }
         
-        /**
-         * Sets the timestamp.
-         *
-         * @param timestamp the timestamp
-         * @return this builder
-         */
-        public Builder timestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
-        
-        /**
-         * Sets the error message.
-         *
-         * @param message the error message
-         * @return this builder
-         */
         public Builder message(String message) {
             this.message = message;
             return this;
         }
         
-        /**
-         * Sets the exception details.
-         *
-         * @param details the exception details
-         * @return this builder
-         */
+        public Builder timestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+        
         public Builder details(ExceptionDetails details) {
             this.details = details;
             return this;
         }
         
-        /**
-         * Sets the HTTP status code.
-         *
-         * @param httpStatusCode the HTTP status code
-         * @return this builder
-         */
         public Builder httpStatusCode(Integer httpStatusCode) {
             this.httpStatusCode = httpStatusCode;
             return this;
         }
         
-        /**
-         * Sets the request path.
-         *
-         * @param path the request path
-         * @return this builder
-         */
-        public Builder path(String path) {
-            this.path = path;
-            return this;
-        }
-        
-        /**
-         * Sets the correlation ID.
-         *
-         * @param correlationId the correlation ID
-         * @return this builder
-         */
-        public Builder correlationId(String correlationId) {
-            this.correlationId = correlationId;
-            return this;
-        }
-        
-        /**
-         * Builds the error response.
-         *
-         * @return the error response
-         */
         public ErrorResponse build() {
-            return new ErrorResponse(this);
+            return new ErrorResponse(success, message, timestamp, details, httpStatusCode);
         }
     }
 }

@@ -1,163 +1,142 @@
 package com.sdk.exceptions.core;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Context information for exceptions.
- * Provides thread-safe storage for additional metadata and context data.
+ * Provides thread-safe storage for additional metadata.
  */
 public class ExceptionContext {
-    
+
     private final Map<String, Object> contextData;
-    private final Map<String, String> metadata;
-    
+
     /**
-     * Constructs an empty ExceptionContext.
+     * Default constructor.
      */
     public ExceptionContext() {
         this.contextData = new ConcurrentHashMap<>();
-        this.metadata = new ConcurrentHashMap<>();
     }
-    
+
     /**
-     * Constructs an ExceptionContext with initial context data.
+     * Constructor with initial context data.
      *
-     * @param contextData the initial context data
+     * @param initialData initial context data
      */
-    public ExceptionContext(Map<String, Object> contextData) {
-        this();
-        if (contextData != null) {
-            this.contextData.putAll(contextData);
+    public ExceptionContext(Map<String, Object> initialData) {
+        this.contextData = new ConcurrentHashMap<>();
+        if (initialData != null) {
+            this.contextData.putAll(initialData);
         }
     }
-    
+
     /**
-     * Adds context data.
+     * Adds a context entry.
      *
      * @param key the key
      * @param value the value
-     * @return this context for method chaining
+     * @return this context for chaining
      */
-    public ExceptionContext addContextData(String key, Object value) {
-        Objects.requireNonNull(key, "Key cannot be null");
+    public ExceptionContext add(String key, Object value) {
         contextData.put(key, value);
         return this;
     }
-    
+
     /**
-     * Adds metadata.
+     * Gets a context value.
      *
      * @param key the key
-     * @param value the value
-     * @return this context for method chaining
+     * @return the value, or null if not found
      */
-    public ExceptionContext addMetadata(String key, String value) {
-        Objects.requireNonNull(key, "Key cannot be null");
-        metadata.put(key, value);
-        return this;
-    }
-    
-    /**
-     * Gets context data by key.
-     *
-     * @param key the key
-     * @return the context data value, or null if not found
-     */
-    public Object getContextData(String key) {
+    public Object get(String key) {
         return contextData.get(key);
     }
-    
+
     /**
-     * Gets context data by key with type casting.
+     * Gets a context value with type casting.
      *
      * @param key the key
      * @param type the expected type
      * @param <T> the type parameter
-     * @return the context data value cast to the specified type, or null if not found or not castable
+     * @return the value cast to the specified type, or null if not found or wrong type
      */
     @SuppressWarnings("unchecked")
-    public <T> T getContextData(String key, Class<T> type) {
+    public <T> T get(String key, Class<T> type) {
         Object value = contextData.get(key);
         if (value != null && type.isInstance(value)) {
             return (T) value;
         }
         return null;
     }
-    
+
     /**
-     * Gets metadata by key.
+     * Checks if a key exists in the context.
      *
      * @param key the key
-     * @return the metadata value, or null if not found
+     * @return true if the key exists, false otherwise
      */
-    public String getMetadata(String key) {
-        return metadata.get(key);
-    }
-    
-    /**
-     * Gets all context data as an unmodifiable map.
-     *
-     * @return the context data map
-     */
-    public Map<String, Object> getAllContextData() {
-        return Collections.unmodifiableMap(new HashMap<>(contextData));
-    }
-    
-    /**
-     * Gets all metadata as an unmodifiable map.
-     *
-     * @return the metadata map
-     */
-    public Map<String, String> getAllMetadata() {
-        return Collections.unmodifiableMap(new HashMap<>(metadata));
-    }
-    
-    /**
-     * Checks if context data exists for the given key.
-     *
-     * @param key the key
-     * @return true if context data exists, false otherwise
-     */
-    public boolean hasContextData(String key) {
+    public boolean contains(String key) {
         return contextData.containsKey(key);
     }
-    
+
     /**
-     * Checks if metadata exists for the given key.
+     * Removes a context entry.
      *
      * @param key the key
-     * @return true if metadata exists, false otherwise
+     * @return the removed value, or null if not found
      */
-    public boolean hasMetadata(String key) {
-        return metadata.containsKey(key);
+    public Object remove(String key) {
+        return contextData.remove(key);
     }
-    
+
     /**
-     * Clears all context data and metadata.
+     * Clears all context data.
      */
     public void clear() {
         contextData.clear();
-        metadata.clear();
     }
-    
+
     /**
-     * Creates a copy of this context.
+     * Gets the size of the context.
      *
-     * @return a new ExceptionContext with the same data
+     * @return the number of context entries
      */
-    public ExceptionContext copy() {
-        ExceptionContext copy = new ExceptionContext();
-        copy.contextData.putAll(this.contextData);
-        copy.metadata.putAll(this.metadata);
-        return copy;
+    public int size() {
+        return contextData.size();
     }
-    
+
+    /**
+     * Checks if the context is empty.
+     *
+     * @return true if empty, false otherwise
+     */
+    public boolean isEmpty() {
+        return contextData.isEmpty();
+    }
+
+    /**
+     * Gets a copy of the context data.
+     *
+     * @return a copy of the context data
+     */
+    public Map<String, Object> getContextData() {
+        return new HashMap<>(contextData);
+    }
+
+    /**
+     * Gets all keys in the context.
+     *
+     * @return set of keys
+     */
+    public java.util.Set<String> getKeys() {
+        return contextData.keySet();
+    }
+
     @Override
     public String toString() {
-        return String.format("ExceptionContext{contextData=%s, metadata=%s}", contextData, metadata);
+        return "ExceptionContext{" +
+                "contextData=" + contextData +
+                '}';
     }
 }
